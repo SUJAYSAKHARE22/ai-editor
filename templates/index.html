@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AdEdit — AI Advertising Video Editor</title>
+  <style>
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #111118;
+      --surface2:  #1a1a24;
+      --border:    #2a2a3a;
+      --primary:   #00d4ff;
+      --secondary: #ff6b35;
+      --accent:    #7c3aed;
+      --text:      #e8e8f0;
+      --muted:     #6b6b80;
+      --success:   #10b981;
+      --error:     #ef4444;
+      --radius:    12px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      padding: 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--surface);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .logo {
+      font-size: 1.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-tag {
+      font-size: 0.7rem;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-weight: 500;
+    }
+
+    /* ── Main layout ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem;
+      display: grid;
+      gap: 2rem;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.75rem;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      margin-bottom: 1.25rem;
+    }
+
+    /* ── Upload zone ── */
+    #drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 3.5rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--surface2);
+      position: relative;
+    }
+
+    #drop-zone:hover, #drop-zone.drag-over {
+      border-color: var(--primary);
+      background: rgba(0, 212, 255, 0.04);
+    }
+
+    #drop-zone .icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      display: block;
+      filter: grayscale(0.5);
+    }
+
+    #drop-zone h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+
+    #drop-zone p {
+      color: var(--muted);
+      font-size: 0.875rem;
+    }
+
+    #file-input { display: none; }
+
+    .file-chosen {
+      display: none;
+      align-items: center;
+      gap: 1rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      margin-top: 1rem;
+    }
+
+    .file-chosen.visible { display: flex; }
+
+    .file-chosen .file-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .file-chosen .remove-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 1.1rem;
+      padding: 0;
+      transition: color 0.15s;
+    }
+
+    .file-chosen .remove-btn:hover { color: var(--error); }
+
+    /* ── Settings grid ── */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .field label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .field input[type="text"],
+    .field input[type="color"],
+    .field select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.875rem;
+      color: var(--text);
+      font-size: 0.9rem;
+      transition: border-color 0.15s;
+      outline: none;
+      width: 100%;
+    }
+
+    .field input:focus, .field select:focus {
+      border-color: var(--primary);
+    }
+
+    select option { background: var(--surface2); }
+
+    /* Color pair */
+    .color-pair {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .color-pair input[type="color"] {
+      width: 44px;
+      height: 38px;
+      padding: 3px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .color-pair input[type="text"] {
+      flex: 1;
+    }
+
+    /* Toggle switches */
+    .toggle-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .toggle-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.55rem 0.875rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .toggle-item:hover { border-color: var(--primary); }
+
+    .toggle-item input[type="checkbox"] { display: none; }
+
+    .toggle-dot {
+      width: 32px;
+      height: 18px;
+      background: var(--border);
+      border-radius: 99px;
+      position: relative;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+
+    .toggle-dot::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 12px;
+      height: 12px;
+      background: #fff;
+      border-radius: 50%;
+      transition: left 0.2s;
+    }
+
+    .toggle-item input:checked ~ .toggle-dot { background: var(--primary); }
+    .toggle-item input:checked ~ .toggle-dot::after { left: 17px; }
+
+    .toggle-label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* ── Submit button ── */
+    #submit-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      width: 100%;
+      padding: 1rem 2rem;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.3px;
+    }
+
+    #submit-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 32px rgba(0, 212, 255, 0.25);
+    }
+
+    #submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ── Progress section ── */
+    #progress-section {
+      display: none;
+    }
+
+    #progress-section.visible { display: block; }
+
+    .progress-bar-wrap {
+      background: var(--surface2);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      margin: 1rem 0;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+
+    .progress-label {
+      font-size: 0.875rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .progress-pct {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .log-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      max-height: 180px;
+      overflow-y: auto;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 1rem;
+    }
+
+    .log-box .log-line { margin-bottom: 0.25rem; }
+    .log-box .log-line.info { color: var(--primary); }
+    .log-box .log-line.error { color: var(--error); }
+    .log-box .log-line.done { color: var(--success); }
+
+    /* ── Result section ── */
+    #result-section { display: none; }
+    #result-section.visible { display: block; }
+
+    .result-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.7rem 1.4rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #000;
+    }
+
+    .btn-primary:hover { opacity: 0.9; }
+
+    .btn-ghost {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover { border-color: var(--primary); }
+
+    video#preview-video {
+      width: 100%;
+      border-radius: var(--radius);
+      background: #000;
+      margin-top: 1.25rem;
+      max-height: 480px;
+    }
+
+    /* ── Error banner ── */
+    #error-banner {
+      display: none;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: var(--radius);
+      padding: 1rem 1.25rem;
+      color: var(--error);
+      font-size: 0.9rem;
+    }
+
+    #error-banner.visible { display: block; }
+
+    /* ── Steps indicator ── */
+    .steps {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .step { display: flex; align-items: center; gap: 0.35rem; }
+    .step-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .step.active .step-dot { border-color: var(--primary); color: var(--primary); }
+    .step.done   .step-dot { background: var(--success); border-color: var(--success); color: #000; }
+    .step-sep { flex: 1; height: 1px; background: var(--border); max-width: 40px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      main { padding: 1.25rem 1rem; }
+      .card { padding: 1.25rem; }
+      .settings-grid { grid-template-columns: 1fr; }
+    }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    #submit-btn.loading .spinner { display: block; }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">⚡ AdEdit</span>
+  <span class="logo-tag">AI Video Editor</span>
+</header>
+
+<main>
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="step active" id="step-1">
+      <span class="step-dot">1</span>
+      <span>Upload</span>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step" id="step-2">
+      <span class="step-dot">2</span>
+      <span>Configure</span>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step" id="step-3">
+      <span class="step-dot">3</span>
+      <span>Processing</span>
+    </div>
+    <div class="step-sep"></div>
+    <div class="step" id="step-4">
+      <span class="step-dot">4</span>
+      <span>Download</span>
+    </div>
+  </div>
+
+  <!-- Upload -->
+  <div class="card">
+    <div class="card-title">📁 Video Input</div>
+    <div id="drop-zone">
+      <span class="icon">🎬</span>
+      <h3>Drop your demo video here</h3>
+      <p>Or click to browse • MP4, MOV, AVI, MKV, WEBM supported</p>
+      <input type="file" id="file-input" accept="video/*">
+    </div>
+    <div class="file-chosen" id="file-chosen">
+      <span>📹</span>
+      <span class="file-name" id="file-name-label">—</span>
+      <button class="remove-btn" id="remove-file">✕</button>
+    </div>
+  </div>
+
+  <!-- Brand Settings -->
+  <div class="card">
+    <div class="card-title">🏷️ Brand Identity</div>
+    <div class="settings-grid">
+      <div class="field">
+        <label>Brand Name</label>
+        <input type="text" id="brand_name" placeholder="Your Brand" value="Your Brand">
+      </div>
+      <div class="field">
+        <label>Tagline</label>
+        <input type="text" id="tagline" placeholder="The future is here">
+      </div>
+      <div class="field">
+        <label>Primary Color</label>
+        <div class="color-pair">
+          <input type="color" id="primary_color_picker" value="#00d4ff">
+          <input type="text"  id="primary_color" value="#00d4ff">
+        </div>
+      </div>
+      <div class="field">
+        <label>Secondary Color</label>
+        <div class="color-pair">
+          <input type="color" id="secondary_color_picker" value="#ff6b35">
+          <input type="text"  id="secondary_color" value="#ff6b35">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Style Settings -->
+  <div class="card">
+    <div class="card-title">🎨 Style & Effects</div>
+    <div class="settings-grid">
+      <div class="field">
+        <label>Visual Style</label>
+        <select id="style">
+          <option value="modern">Modern</option>
+          <option value="minimal">Minimal</option>
+          <option value="bold">Bold</option>
+          <option value="retro">Retro</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Color Grade</label>
+        <select id="color_grade">
+          <option value="cinematic" selected>Cinematic</option>
+          <option value="vivid">Vivid</option>
+          <option value="cool">Cool</option>
+          <option value="warm">Warm</option>
+          <option value="moody">Moody</option>
+          <option value="none">None</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Background Music</label>
+        <select id="music_style">
+          <option value="corporate" selected>Corporate</option>
+          <option value="upbeat">Upbeat</option>
+          <option value="dramatic">Dramatic</option>
+          <option value="calm">Calm</option>
+          <option value="none">No Music</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Max Zoom Level</label>
+        <select id="speed_boost">
+          <option value="1.0">1× (no speed boost)</option>
+          <option value="2.0" selected>2× idle speed</option>
+          <option value="3.0">3× idle speed</option>
+          <option value="4.0">4× idle speed</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top: 1.25rem;">
+      <div class="card-title">✨ Feature Toggles</div>
+      <div class="toggle-grid">
+        <label class="toggle-item">
+          <input type="checkbox" id="add_logo" checked>
+          <span class="toggle-dot"></span>
+          <span class="toggle-label">Logo Watermark</span>
+        </label>
+        <label class="toggle-item">
+          <input type="checkbox" id="add_captions">
+          <span class="toggle-dot"></span>
+          <span class="toggle-label">Auto Captions</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="error-banner"></div>
+
+  <!-- Submit -->
+  <button id="submit-btn" disabled>
+    <div class="spinner"></div>
+    <span id="submit-label">🚀 Generate Ad Video</span>
+  </button>
+
+  <!-- Progress -->
+  <div class="card" id="progress-section">
+    <div class="card-title">⚙️ Processing</div>
+    <div class="progress-label">
+      <span id="progress-msg">Starting…</span>
+      <span class="progress-pct" id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill"></div>
+    </div>
+    <div class="log-box" id="log-box"></div>
+  </div>
+
+  <!-- Result -->
+  <div class="card" id="result-section">
+    <div class="card-title">✅ Your Ad Video is Ready</div>
+    <div class="result-actions">
+      <a class="btn btn-primary" id="download-btn" href="#">⬇ Download Ad Video</a>
+      <button class="btn btn-ghost" id="new-video-btn">🔄 Process Another Video</button>
+    </div>
+    <video id="preview-video" controls playsinline></video>
+  </div>
+
+</main>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────
+let currentFile = null;
+let currentJobId = null;
+let sseSource    = null;
+
+// ── File handling ──────────────────────────────────────────────────────
+const dropZone   = document.getElementById('drop-zone');
+const fileInput  = document.getElementById('file-input');
+const fileChosen = document.getElementById('file-chosen');
+const fileLabel  = document.getElementById('file-name-label');
+const submitBtn  = document.getElementById('submit-btn');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) setFile(f);
+});
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) setFile(fileInput.files[0]);
+});
+
+document.getElementById('remove-file').addEventListener('click', () => {
+  clearFile();
+});
+
+function setFile(f) {
+  currentFile = f;
+  fileLabel.textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(1) + ' MB)';
+  fileChosen.classList.add('visible');
+  submitBtn.disabled = false;
+  setStep(2);
+}
+
+function clearFile() {
+  currentFile = null;
+  fileInput.value = '';
+  fileChosen.classList.remove('visible');
+  fileLabel.textContent = '—';
+  submitBtn.disabled = true;
+  setStep(1);
+}
+
+// ── Color sync ────────────────────────────────────────────────────────
+function syncColor(pickerId, textId) {
+  const picker = document.getElementById(pickerId);
+  const text   = document.getElementById(textId);
+  picker.addEventListener('input', () => { text.value = picker.value; });
+  text.addEventListener('input', () => {
+    if (/^#[0-9a-fA-F]{6}$/.test(text.value)) picker.value = text.value;
+  });
+}
+syncColor('primary_color_picker',   'primary_color');
+syncColor('secondary_color_picker', 'secondary_color');
+
+// ── Submit ────────────────────────────────────────────────────────────
+submitBtn.addEventListener('click', async () => {
+  if (!currentFile) return;
+
+  const fd = new FormData();
+  fd.append('video',           currentFile);
+  fd.append('brand_name',      document.getElementById('brand_name').value);
+  fd.append('tagline',         document.getElementById('tagline').value);
+  fd.append('primary_color',   document.getElementById('primary_color').value);
+  fd.append('secondary_color', document.getElementById('secondary_color').value);
+  fd.append('style',           document.getElementById('style').value);
+  fd.append('color_grade',     document.getElementById('color_grade').value);
+  fd.append('music_style',     document.getElementById('music_style').value);
+  fd.append('speed_boost',     document.getElementById('speed_boost').value);
+  fd.append('add_logo',        document.getElementById('add_logo').checked ? 'true' : 'false');
+  fd.append('add_captions',    document.getElementById('add_captions').checked ? 'true' : 'false');
+
+  showError('');
+  submitBtn.disabled = true;
+  submitBtn.classList.add('loading');
+  document.getElementById('submit-label').textContent = 'Uploading…';
+  document.getElementById('progress-section').classList.add('visible');
+  document.getElementById('result-section').classList.remove('visible');
+  setStep(3);
+
+  try {
+    const res  = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      throw new Error(data.error || 'Upload failed');
+    }
+
+    currentJobId = data.job_id;
+    listenSSE(currentJobId);
+  } catch (err) {
+    showError(err.message);
+    resetSubmit();
+    setStep(2);
+  }
+});
+
+// ── SSE progress ──────────────────────────────────────────────────────
+function listenSSE(jobId) {
+  if (sseSource) sseSource.close();
+  sseSource = new EventSource('/api/stream/' + jobId);
+
+  sseSource.onmessage = e => {
+    try {
+      const job = JSON.parse(e.data);
+      updateProgress(job);
+      if (job.status === 'done') {
+        sseSource.close();
+        onDone(jobId, job);
+      } else if (job.status === 'error') {
+        sseSource.close();
+        showError(job.message || 'Processing error');
+        resetSubmit();
+        setStep(2);
+      }
+    } catch (_) {}
+  };
+
+  sseSource.onerror = () => {
+    sseSource.close();
+    // fallback: poll once
+    setTimeout(() => pollStatus(jobId), 2000);
+  };
+}
+
+async function pollStatus(jobId) {
+  try {
+    const res = await fetch('/api/status/' + jobId);
+    const job = await res.json();
+    updateProgress(job);
+    if (job.status === 'done')  { onDone(jobId, job); return; }
+    if (job.status === 'error') { showError(job.message); resetSubmit(); return; }
+    setTimeout(() => pollStatus(jobId), 1500);
+  } catch (_) { setTimeout(() => pollStatus(jobId), 3000); }
+}
+
+function updateProgress(job) {
+  const pct  = job.progress || 0;
+  const msg  = job.message  || '';
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent  = pct + '%';
+  document.getElementById('progress-msg').textContent  = msg;
+
+  const logBox = document.getElementById('log-box');
+  if (job.log && job.log.length > 0) {
+    const last = job.log[job.log.length - 1];
+    const line = document.createElement('div');
+    line.className = 'log-line info';
+    line.textContent = '> ' + last;
+    logBox.appendChild(line);
+    logBox.scrollTop = logBox.scrollHeight;
+  }
+}
+
+function onDone(jobId, job) {
+  submitBtn.classList.remove('loading');
+  document.getElementById('submit-label').textContent = '🚀 Generate Ad Video';
+
+  const downloadBtn = document.getElementById('download-btn');
+  downloadBtn.href  = '/api/download/' + jobId;
+
+  const preview = document.getElementById('preview-video');
+  preview.src   = '/api/preview/' + jobId + '?t=' + Date.now();
+  preview.load();
+
+  document.getElementById('result-section').classList.add('visible');
+  document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+  setStep(4);
+
+  // Log done line
+  const logBox = document.getElementById('log-box');
+  const line   = document.createElement('div');
+  line.className   = 'log-line done';
+  line.textContent = '✓ Processing complete!';
+  logBox.appendChild(line);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+// ── New video ─────────────────────────────────────────────────────────
+document.getElementById('new-video-btn').addEventListener('click', () => {
+  clearFile();
+  currentJobId = null;
+  document.getElementById('progress-section').classList.remove('visible');
+  document.getElementById('result-section').classList.remove('visible');
+  document.getElementById('log-box').innerHTML = '';
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('progress-pct').textContent  = '0%';
+  document.getElementById('progress-msg').textContent  = 'Starting…';
+  showError('');
+  setStep(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+// ── Helpers ───────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('error-banner');
+  if (msg) {
+    el.textContent = '⚠ ' + msg;
+    el.classList.add('visible');
+  } else {
+    el.classList.remove('visible');
+  }
+}
+
+function resetSubmit() {
+  submitBtn.disabled = false;
+  submitBtn.classList.remove('loading');
+  document.getElementById('submit-label').textContent = '🚀 Generate Ad Video';
+}
+
+function setStep(n) {
+  for (let i = 1; i <= 4; i++) {
+    const el = document.getElementById('step-' + i);
+    el.classList.remove('active', 'done');
+    if (i < n)  el.classList.add('done');
+    if (i === n) el.classList.add('active');
+    // Mark inner dot for done steps
+    if (i < n) el.querySelector('.step-dot').textContent = '✓';
+    else        el.querySelector('.step-dot').textContent = i;
+  }
+}
+</script>
+</body>
+</html>
